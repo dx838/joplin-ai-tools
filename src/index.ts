@@ -903,109 +903,158 @@ async function forEachNoteInNotebook(
 	}
 }
 
-// Robust selected-text getter:
-// 1) Try workspace.selectedText() if available.
-// 2) Fall back to editor.execCommand('selectedText') and normalize.
-// 3) If still empty, try to execute a copy command and read the clipboard via joplin.clipboard or navigator.clipboard.
-// This increases compatibility across editors and platforms; reading clipboard requires appropriate permissions in some environments.
+
 async function getSelectedText(): Promise<string> {
-	// 1) workspace.selectedText()
+	// 仅直接从编辑器 / 视图面板获取选中文本（不再使用剪贴板、execCommand copy 等回退策略）
+	// 使用安全检测（typeof fn === 'function'）以兼容不同版本的 Joplin API
 	try {
-		const ws: any = joplin.workspace as any;
-		if (ws && typeof ws.selectedText === 'function') {
-			const text = await ws.selectedText();
-			if (typeof text === 'string' && text.trim() !== '') return text;
-		}
-	} catch (e) {
-		// ignore and continue
-	}
-
-	// 2) editor.execCommand('selectedText')
-	try {
-		const rawSelection = await joplin.commands.execute('editor.execCommand', {
-			name: 'selectedText',
-		});
-		const normalized = normaliseSelection(rawSelection);
-		if (normalized && normalized.trim() !== '') return normalized;
-	} catch (e) {
-		// ignore and continue
-	}
-
-	// 3) 如果无法直接得到选中内容，优先尝试读取系统剪贴板（navigator.clipboard）
-	//    如果 navigator.clipboard 不可用或读取为空，则尝试 joplin.clipboard（插件环境优先）
-	try {
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		const nav: any = (globalThis as any).navigator;
-		if (nav && nav.clipboard && typeof nav.clipboard.readText === 'function') {
+		const viewsAny: any = (joplin as any).views || {};
+		// 1) 如果存在 editors API，尝试获取聚焦编辑器并读取选中文本
+		if (viewsAny.editors) {
 			try {
-				const clipText = await nav.clipboard.readText();
-				if (typeof clipText === 'string' && clipText.trim() !== '') return clipText;
+				// 常见 editor API 可能暴露的读取方法：selectedText, getSelectedText, selection, getSelection
+				// 这里采用多种可能名称的安全尝试
+				const getFocusedEditor = viewsAny.editors.getFocusedEditor || viewsAny.editors.focusedEditor || viewsAny.editors.getCurrentEditor;
+				let editor: any = null;
+				if (typeof getFocusedEditor === 'function') {
+					editor = await getFocusedEditor();
+				} else if (typeof viewsAny.editors.get === 'function') {
+					// 有些实现可能需要通过 id 获取当前 editor，尝试直接调用 get(undefined)
+					try {
+						editor = await viewsAny.editors.get();
+					} catch (e) {
+						// ignore
+					}
+				}
+				if (editor) {
+					const candidates = [
+						'selectedText',
+						'getSelectedText',
+						'selection',
+						'getSelection',
+						'readSelection',
+					];
+					for (const name of candidates) {
+						try {
+							const fn = editor[name];
+							if (typeof fn === 'function') {
+								const res = await fn.call(editor);
+								if (typeof res === 'string' && res.trim() !== '') return res;
+							} else if (typeof res === 'string' && res.trim() !== '') {
+								// 某些实现可能直接暴露属性 selection/text
+								if (typeof (editor as any)[name] === 'string') {
+									const prop = (editor as any)[name];
+									if (prop && typeof prop === 'string' && prop.trim() !== '') return prop;
+								}
+							}
+						} catch (e) {
+							// 单个方法失败则继续尝试其它方法
+						}
+					}
+				}
 			} catch (e) {
-				// 读取系统剪贴板失败，继续尝试 joplin.clipboard
+				// editors 读取失败，继续尝试 panels
 			}
 		}
-	} catch (e) {
-		// ignore
-	}
 
-	try {
-		const clip: any = (joplin as any).clipboard;
-		if (clip && typeof clip.readText === 'function') {
+		// 2) 尝试从可见的 panels 中读取（如果 panels API 可用）
+		if (viewsAny.panels) {
 			try {
-				const clipText = await clip.readText();
-				if (typeof clipText === 'string' && clipText.trim() !== '') return clipText;
+				// panels 可能以多种形式存在：find/getAll/create 返回面板对象数组或 map
+				// 先尝试 panels.find() 或 panels.all() 或 panels.list()
+				let panelList: any[] = [];
+				if (typeof viewsAny.panels.find === 'function') {
+					try {
+						// find 可能接受查询或返回数组
+						const found = await viewsAny.panels.find();
+						if (Array.isArray(found)) panelList = found;
+					} catch (e) {
+						// ignore
+					}
+				}
+				if (!panelList.length && typeof viewsAny.panels.all === 'function') {
+					try {
+						const all = await viewsAny.panels.all();
+						if (Array.isArray(all)) panelList = all;
+					} catch (e) {
+						// ignore
+					}
+				}
+				if (!panelList.length && typeof viewsAny.panels.getAll === 'function') {
+					try {
+						const all = await viewsAny.panels.getAll();
+						if (Array.isArray(all)) panelList = all;
+					} catch (e) {
+						// ignore
+					}
+				}
+				// 如果没有列出面板，也可以尝试 panels.get() 或 panels.getActive()
+				if (!panelList.length && typeof viewsAny.panels.getActive === 'function') {
+					try {
+						const active = await viewsAny.panels.getActive();
+						if (active) panelList = [active];
+					} catch (e) {
+						// ignore
+					}
+				}
+				// 遍历面板并尝试读取可能的选中文本或 HTML 内容
+				for (const panel of panelList) {
+					if (!panel) continue;
+					const tryNames = [
+						'selectedText',
+						'getSelectedText',
+						'selection',
+						'getSelection',
+						'getHtml',
+						'html',
+						'innerText',
+						'getText',
+						'text',
+					];
+					for (const name of tryNames) {
+						try {
+							const fnOrProp = panel[name];
+							if (typeof fnOrProp === 'function') {
+								const res = await fnOrProp.call(panel);
+								if (typeof res === 'string' && res.trim() !== '') return res;
+							} else if (typeof fnOrProp === 'string' && fnOrProp.trim() !== '') {
+								return fnOrProp;
+							}
+						} catch (e) {
+							// 单个面板方法失败则继续
+						}
+					}
+					// 另外尝试 panel.getHtml / panel.getMessage / panel.exec 等常见接口
+					if (typeof panel.getHtml === 'function') {
+						try {
+							const html = await panel.getHtml();
+							if (typeof html === 'string' && html.trim() !== '') return html;
+						} catch (e) {
+							// ignore
+						}
+					}
+					if (typeof panel.getContent === 'function') {
+						try {
+							const content = await panel.getContent();
+							if (typeof content === 'string' && content.trim() !== '') return content;
+						} catch (e) {
+							// ignore
+						}
+					}
+				}
 			} catch (e) {
-				// joplin.clipboard 读取失败，继续下一步回退策略
+				// panels 读取失败，继续（最终将返回空字符串）
 			}
 		}
-	} catch (e) {
-		// ignore
+	} catch (error) {
+		// 总体保险捕获，确保插件不会因读取失败崩溃
+		console.warn('[AI Tools] getSelectedText direct panel/editor read failed:', error);
 	}
 
-	// 4) 回退：尝试触发编辑器的 copy 命令（将选区放入系统剪贴板），然后再次尝试 joplin.clipboard 与 navigator.clipboard
-	try {
-		// Attempt to trigger copy in editor (may place selection into system clipboard)
-		await joplin.commands.execute('editor.execCommand', { name: 'copy' });
-	} catch (e) {
-		// ignore copy failure
-	}
-
-	// 再次尝试 joplin.clipboard（插件环境更可靠）
-	try {
-		const clip: any = (joplin as any).clipboard;
-		if (clip && typeof clip.readText === 'function') {
-			const clipText = await clip.readText();
-			if (typeof clipText === 'string' && clipText.trim() !== '') return clipText;
-		}
-	} catch (e) {
-		// ignore
-	}
-
-	// 最后尝试再次读取 navigator.clipboard
-	try {
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		const nav: any = (globalThis as any).navigator;
-		if (nav && nav.clipboard && typeof nav.clipboard.readText === 'function') {
-			const clipText = await nav.clipboard.readText();
-			if (typeof clipText === 'string' && clipText.trim() !== '') return clipText;
-		}
-	} catch (e) {
-		// ignore
-	}
-
-	// 5) 最后一次尝试：再次通过 editor.execCommand('selectedText') 获取（以防之前的中间步骤改变了编辑器状态）
-	try {
-		const rawSelection = await joplin.commands.execute('editor.execCommand', {
-			name: 'selectedText',
-		});
-		const normalized = normaliseSelection(rawSelection);
-		if (normalized && normalized.trim() !== '') return normalized;
-	} catch (e) {
-		// ignore
-	}
-
+	// 未能直接从面板/编辑器读取选中内容，返回空字符串（不再尝试剪贴板等回退）
 	return '';
 }
+
 
 joplin.plugins.register({
 	onStart: async function() {
