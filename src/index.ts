@@ -130,6 +130,34 @@ function prepareTagPoolForPrompt(tagPool: string[]): string[] {
 	return tagPool.slice(0, TAG_POOL_PROMPT_LIMIT);
 }
 
+// == Rate limiter (global) ==
+// Limit outgoing API requests to 3 per second.
+// Implementation: simple token-bucket with capacity 3, refilled every 1000ms.
+// If no token is available, callers wait in a FIFO queue.
+const RATE_LIMIT_PER_SECOND = 3;
+let _availableTokens = RATE_LIMIT_PER_SECOND;
+const _waitingResolvers: Array<() => void> = [];
+setInterval(() => {
+	// Refill tokens to capacity, then release queued waiters up to capacity.
+	_availableTokens = RATE_LIMIT_PER_SECOND;
+	while (_availableTokens > 0 && _waitingResolvers.length > 0) {
+		_availableTokens--;
+		const resolver = _waitingResolvers.shift();
+		if (resolver) resolver();
+	}
+}, 1000);
+
+function acquireToken(): Promise<void> {
+	if (_availableTokens > 0) {
+		_availableTokens--;
+		return Promise.resolve();
+	}
+	return new Promise((resolve) => {
+		_waitingResolvers.push(resolve);
+	});
+}
+// == End rate limiter ==
+
 async function streamChatCompletion(
 	baseUrl: string,
 	apiKey: string,
@@ -137,6 +165,9 @@ async function streamChatCompletion(
 	onDelta?: StreamHandler,
 	options: ChatRequestOptions = {}
 ): Promise<string> {
+	// Wait for a rate-limiter token before initiating the request
+	await acquireToken();
+	
 	return new Promise((resolve, reject) => {
 		const endpoint = `${baseUrl.replace(/\/+$/, '')}/chat/completions`;
 		const parsedUrl = new URL(endpoint);
