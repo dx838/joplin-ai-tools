@@ -903,20 +903,67 @@ async function forEachNoteInNotebook(
 	}
 }
 
-// New helper: robustly obtain selected text across different editors / API versions.
-// Try workspace.selectedText() first (string), fall back to editor.execCommand('selectedText') and normalise.
+// Robust selected-text getter:
+// 1) Try workspace.selectedText() if available.
+// 2) Fall back to editor.execCommand('selectedText') and normalize.
+// 3) If still empty, try to execute a copy command and read the clipboard via joplin.clipboard or navigator.clipboard.
+// This increases compatibility across editors and platforms; reading clipboard requires appropriate permissions in some environments.
 async function getSelectedText(): Promise<string> {
+	// 1) workspace.selectedText()
 	try {
-		// workspace.selectedText exists in newer Joplin API; use it if available.
 		const ws: any = joplin.workspace as any;
 		if (ws && typeof ws.selectedText === 'function') {
 			const text = await ws.selectedText();
 			if (typeof text === 'string' && text.trim() !== '') return text;
 		}
 	} catch (e) {
-		// ignore and try other methods
+		// ignore and continue
 	}
 
+	// 2) editor.execCommand('selectedText')
+	try {
+		const rawSelection = await joplin.commands.execute('editor.execCommand', {
+			name: 'selectedText',
+		});
+		const normalized = normaliseSelection(rawSelection);
+		if (normalized && normalized.trim() !== '') return normalized;
+	} catch (e) {
+		// ignore and continue
+	}
+
+	// 3) Try copying the selection into the clipboard then read it.
+	// Some editors don't expose selection via API but support the copy command.
+	try {
+		// Attempt to trigger copy in editor (may place selection into system clipboard)
+		await joplin.commands.execute('editor.execCommand', { name: 'copy' });
+	} catch (e) {
+		// ignore copy failure
+	}
+
+	// Try joplin.clipboard if available (preferred in plugin env)
+	try {
+		const clip: any = (joplin as any).clipboard;
+		if (clip && typeof clip.readText === 'function') {
+			const clipText = await clip.readText();
+			if (typeof clipText === 'string' && clipText.trim() !== '') return clipText;
+		}
+	} catch (e) {
+		// ignore
+	}
+
+	// Try navigator.clipboard as a last resort (may work in some embedded webviews)
+	try {
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		const nav: any = (globalThis as any).navigator;
+		if (nav && nav.clipboard && typeof nav.clipboard.readText === 'function') {
+			const clipText = await nav.clipboard.readText();
+			if (typeof clipText === 'string' && clipText.trim() !== '') return clipText;
+		}
+	} catch (e) {
+		// ignore
+	}
+
+	// 4) Final attempt: try selectedText again in case something changed
 	try {
 		const rawSelection = await joplin.commands.execute('editor.execCommand', {
 			name: 'selectedText',
@@ -927,7 +974,6 @@ async function getSelectedText(): Promise<string> {
 		// ignore
 	}
 
-	// If nothing found, return empty string.
 	return '';
 }
 
