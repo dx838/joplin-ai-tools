@@ -914,12 +914,15 @@ async function getSelectedText(): Promise<string> {
 			try {
 				// 常见 editor API 可能暴露的读取方法：selectedText, getSelectedText, selection, getSelection
 				// 这里采用多种可能名称的安全尝试
-				const getFocusedEditor = viewsAny.editors.getFocusedEditor || viewsAny.editors.focusedEditor || viewsAny.editors.getCurrentEditor;
+				const getFocusedEditor =
+					viewsAny.editors.getFocusedEditor ||
+					viewsAny.editors.focusedEditor ||
+					viewsAny.editors.getCurrentEditor;
 				let editor: any = null;
 				if (typeof getFocusedEditor === 'function') {
 					editor = await getFocusedEditor();
 				} else if (typeof viewsAny.editors.get === 'function') {
-					// 有些实现可能需要通过 id 获取当前 editor，尝试直接调用 get(undefined)
+					// 有些实现可能需要通过 id 获取当前 editor，尝试直接调用 get()
 					try {
 						editor = await viewsAny.editors.get();
 					} catch (e) {
@@ -936,16 +939,13 @@ async function getSelectedText(): Promise<string> {
 					];
 					for (const name of candidates) {
 						try {
-							const fn = editor[name];
-							if (typeof fn === 'function') {
-								const res = await fn.call(editor);
+							const fnOrProp = editor[name];
+							if (typeof fnOrProp === 'function') {
+								const res = await fnOrProp.call(editor);
 								if (typeof res === 'string' && res.trim() !== '') return res;
-							} else if (typeof res === 'string' && res.trim() !== '') {
-								// 某些实现可能直接暴露属性 selection/text
-								if (typeof (editor as any)[name] === 'string') {
-									const prop = (editor as any)[name];
-									if (prop && typeof prop === 'string' && prop.trim() !== '') return prop;
-								}
+							} else if (typeof fnOrProp === 'string' && fnOrProp.trim() !== '') {
+								// 直接返回属性值（例如某些实现暴露 selection/text 字段）
+								return fnOrProp;
 							}
 						} catch (e) {
 							// 单个方法失败则继续尝试其它方法
@@ -965,7 +965,6 @@ async function getSelectedText(): Promise<string> {
 				let panelList: any[] = [];
 				if (typeof viewsAny.panels.find === 'function') {
 					try {
-						// find 可能接受查询或返回数组
 						const found = await viewsAny.panels.find();
 						if (Array.isArray(found)) panelList = found;
 					} catch (e) {
@@ -988,7 +987,7 @@ async function getSelectedText(): Promise<string> {
 						// ignore
 					}
 				}
-				// 如果没有列出面板，也可以尝试 panels.get() 或 panels.getActive()
+				// 如果没有列出面板，也可以尝试 panels.getActive()
 				if (!panelList.length && typeof viewsAny.panels.getActive === 'function') {
 					try {
 						const active = await viewsAny.panels.getActive();
@@ -1024,7 +1023,7 @@ async function getSelectedText(): Promise<string> {
 							// 单个面板方法失败则继续
 						}
 					}
-					// 另外尝试 panel.getHtml / panel.getMessage / panel.exec 等常见接口
+					// 另外尝试 panel.getHtml / panel.getContent / panel.getMessage 等常见接口
 					if (typeof panel.getHtml === 'function') {
 						try {
 							const html = await panel.getHtml();
