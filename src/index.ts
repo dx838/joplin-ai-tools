@@ -931,8 +931,38 @@ async function getSelectedText(): Promise<string> {
 		// ignore and continue
 	}
 
-	// 3) Try copying the selection into the clipboard then read it.
-	// Some editors don't expose selection via API but support the copy command.
+	// 3) 如果无法直接得到选中内容，优先尝试读取系统剪贴板（navigator.clipboard）
+	//    如果 navigator.clipboard 不可用或读取为空，则尝试 joplin.clipboard（插件环境优先）
+	try {
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		const nav: any = (globalThis as any).navigator;
+		if (nav && nav.clipboard && typeof nav.clipboard.readText === 'function') {
+			try {
+				const clipText = await nav.clipboard.readText();
+				if (typeof clipText === 'string' && clipText.trim() !== '') return clipText;
+			} catch (e) {
+				// 读取系统剪贴板失败，继续尝试 joplin.clipboard
+			}
+		}
+	} catch (e) {
+		// ignore
+	}
+
+	try {
+		const clip: any = (joplin as any).clipboard;
+		if (clip && typeof clip.readText === 'function') {
+			try {
+				const clipText = await clip.readText();
+				if (typeof clipText === 'string' && clipText.trim() !== '') return clipText;
+			} catch (e) {
+				// joplin.clipboard 读取失败，继续下一步回退策略
+			}
+		}
+	} catch (e) {
+		// ignore
+	}
+
+	// 4) 回退：尝试触发编辑器的 copy 命令（将选区放入系统剪贴板），然后再次尝试 joplin.clipboard 与 navigator.clipboard
 	try {
 		// Attempt to trigger copy in editor (may place selection into system clipboard)
 		await joplin.commands.execute('editor.execCommand', { name: 'copy' });
@@ -940,7 +970,7 @@ async function getSelectedText(): Promise<string> {
 		// ignore copy failure
 	}
 
-	// Try joplin.clipboard if available (preferred in plugin env)
+	// 再次尝试 joplin.clipboard（插件环境更可靠）
 	try {
 		const clip: any = (joplin as any).clipboard;
 		if (clip && typeof clip.readText === 'function') {
@@ -951,7 +981,7 @@ async function getSelectedText(): Promise<string> {
 		// ignore
 	}
 
-	// Try navigator.clipboard as a last resort (may work in some embedded webviews)
+	// 最后尝试再次读取 navigator.clipboard
 	try {
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		const nav: any = (globalThis as any).navigator;
@@ -963,7 +993,7 @@ async function getSelectedText(): Promise<string> {
 		// ignore
 	}
 
-	// 4) Final attempt: try selectedText again in case something changed
+	// 5) 最后一次尝试：再次通过 editor.execCommand('selectedText') 获取（以防之前的中间步骤改变了编辑器状态）
 	try {
 		const rawSelection = await joplin.commands.execute('editor.execCommand', {
 			name: 'selectedText',
