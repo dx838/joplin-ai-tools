@@ -1208,86 +1208,86 @@ joplin.plugins.register({
 			},
 		});
 
-		await joplin.commands.register({
-			name: 'aiChatWithSelection',
-			label: 'AI Chat',
-			iconName: 'fas fa-robot',
-			execute: async () => {
-				try {
-					const note = await joplin.workspace.selectedNote();
-					if (!note) {
-						await joplin.views.dialogs.showMessageBox('Please open a note first.');
-						return;
-					}
+		// await joplin.commands.register({
+		// 	name: 'aiChatWithSelection',
+		// 	label: 'AI Chat',
+		// 	iconName: 'fas fa-robot',
+		// 	execute: async () => {
+		// 		try {
+		// 			const note = await joplin.workspace.selectedNote();
+		// 			if (!note) {
+		// 				await joplin.views.dialogs.showMessageBox('Please open a note first.');
+		// 				return;
+		// 			}
 
-					//const rawSelection = await joplin.commands.execute('editor.execCommand', {
-					//	name: 'selectedText',
-					//});
-					//const selectedText = normaliseSelection(rawSelection);
-					// Use new robust getter which uses workspace.selectedText() first and falls back to execCommand
-					const selectedText = await getSelectedText();
+		// 			//const rawSelection = await joplin.commands.execute('editor.execCommand', {
+		// 			//	name: 'selectedText',
+		// 			//});
+		// 			//const selectedText = normaliseSelection(rawSelection);
+		// 			// Use new robust getter which uses workspace.selectedText() first and falls back to execCommand
+		// 			const selectedText = await getSelectedText();
 
-					if (!selectedText || selectedText.trim() === '') {
-						await joplin.views.dialogs.showMessageBox('Please select some text first.');
-						return;
-					}
+		// 			if (!selectedText || selectedText.trim() === '') {
+		// 				await joplin.views.dialogs.showMessageBox('Please select some text first.');
+		// 				return;
+		// 			}
 
-					const baseUrl = await joplin.settings.value('baseUrl');
-					const apiKey = await joplin.settings.value('apiKey');
+		// 			const baseUrl = await joplin.settings.value('baseUrl');
+		// 			const apiKey = await joplin.settings.value('apiKey');
 
-					if (!apiKey || apiKey.trim() === '') {
-							await joplin.views.dialogs.showMessageBox('Please configure your API Key in settings first.');
-						return;
-					}
+		// 			if (!apiKey || apiKey.trim() === '') {
+		// 					await joplin.views.dialogs.showMessageBox('Please configure your API Key in settings first.');
+		// 				return;
+		// 			}
 
-					const header = `\n\n---\n**AI Response:**\n\n`;
-					await joplin.commands.execute('editor.execCommand', {
-						name: 'replaceSelection',
-						args: [selectedText + header],
-					});
+		// 			const header = `\n\n---\n**AI Response:**\n\n`;
+		// 			await joplin.commands.execute('editor.execCommand', {
+		// 				name: 'replaceSelection',
+		// 				args: [selectedText + header],
+		// 			});
 
-					let finalResponse = '';
+		// 			let finalResponse = '';
 
-					const appendText = async (chunk: string) => {
-						if (!chunk) return;
-						finalResponse += chunk;
-						await joplin.commands.execute('editor.execCommand', {
-							name: 'replaceSelection',
-							args: [chunk],
-						});
-					};
+		// 			const appendText = async (chunk: string) => {
+		// 				if (!chunk) return;
+		// 				finalResponse += chunk;
+		// 				await joplin.commands.execute('editor.execCommand', {
+		// 					name: 'replaceSelection',
+		// 					args: [chunk],
+		// 				});
+		// 			};
 
-					try {
-						await streamChatCompletion(
-							baseUrl,
-							apiKey,
-							selectedText,
-							async (delta) => {
-								await appendText(delta);
-							},
-							{ stream: true }
-						);
-						if (finalResponse) {
-							await joplin.commands.execute('editor.execCommand', {
-								name: 'replaceSelection',
-								args: ['\n'],
-							});
-						}
-					} catch (error) {
-						const errorText = `\n[Error: ${(error as Error).message}]`;
-						await joplin.commands.execute('editor.execCommand', {
-							name: 'replaceSelection',
-							args: [errorText],
-						});
-						throw error;
-					}
+		// 			try {
+		// 				await streamChatCompletion(
+		// 					baseUrl,
+		// 					apiKey,
+		// 					selectedText,
+		// 					async (delta) => {
+		// 						await appendText(delta);
+		// 					},
+		// 					{ stream: true }
+		// 				);
+		// 				if (finalResponse) {
+		// 					await joplin.commands.execute('editor.execCommand', {
+		// 						name: 'replaceSelection',
+		// 						args: ['\n'],
+		// 					});
+		// 				}
+		// 			} catch (error) {
+		// 				const errorText = `\n[Error: ${(error as Error).message}]`;
+		// 				await joplin.commands.execute('editor.execCommand', {
+		// 					name: 'replaceSelection',
+		// 					args: [errorText],
+		// 				});
+		// 				throw error;
+		// 			}
 
-				} catch (error) {
-					console.error('AI Chat error:', error);
-					await joplin.views.dialogs.showMessageBox(`Error: ${error.message}`);
-				}
-			},
-		});
+		// 		} catch (error) {
+		// 			console.error('AI Chat error:', error);
+		// 			await joplin.views.dialogs.showMessageBox(`Error: ${error.message}`);
+		// 		}
+		// 	},
+		// });
 
 		await joplin.commands.register({
 			name: 'aiGenerateTitleForCurrentNote',
@@ -1380,33 +1380,33 @@ joplin.plugins.register({
 			},
 		});
 
-		await joplin.commands.register({
-			name: 'aiClearTagsForCurrentNote',
-			label: 'AI Clear Tags for Current Note',
-			iconName: 'fas fa-eraser',
-			execute: async () => {
-				try {
-					const note = await joplin.workspace.selectedNote();
-					if (!note) {
-						await joplin.views.dialogs.showMessageBox('Please open a note first.');
-						return;
-					}
+		// await joplin.commands.register({
+		// 	name: 'aiClearTagsForCurrentNote',
+		// 	label: 'AI Clear Tags for Current Note',
+		// 	iconName: 'fas fa-eraser',
+		// 	execute: async () => {
+		// 		try {
+		// 			const note = await joplin.workspace.selectedNote();
+		// 			if (!note) {
+		// 				await joplin.views.dialogs.showMessageBox('Please open a note first.');
+		// 				return;
+		// 			}
 
-					const removed = await removeAllTagsFromNote(note.id);
-					if (removed > 0) {
-						await refreshTagPoolFromJoplin();
-					}
-					await joplin.views.dialogs.showToast({
-						message: removed ? `已移除当前笔记的 ${removed} 个标签。` : '当前笔记没有可移除的标签。',
-						type: ToastType.Info,
-						duration: 4000,
-					});
-				} catch (error) {
-					console.error('AI Clear Tags (current note) error:', error);
-					await joplin.views.dialogs.showMessageBox(`Error: ${error.message}`);
-				}
-			},
-		});
+		// 			const removed = await removeAllTagsFromNote(note.id);
+		// 			if (removed > 0) {
+		// 				await refreshTagPoolFromJoplin();
+		// 			}
+		// 			await joplin.views.dialogs.showToast({
+		// 				message: removed ? `已移除当前笔记的 ${removed} 个标签。` : '当前笔记没有可移除的标签。',
+		// 				type: ToastType.Info,
+		// 				duration: 4000,
+		// 			});
+		// 		} catch (error) {
+		// 			console.error('AI Clear Tags (current note) error:', error);
+		// 			await joplin.views.dialogs.showMessageBox(`Error: ${error.message}`);
+		// 		}
+		// 	},
+		// });
 
 		await joplin.commands.register({
 			name: 'aiGenerateTitlesForCurrentNotebook',
@@ -1559,61 +1559,61 @@ joplin.plugins.register({
 			},
 		});
 
-		await joplin.commands.register({
-			name: 'aiClearTagsForCurrentNotebook',
-			label: 'AI Clear Tags for Current Notebook',
-			iconName: 'fas fa-book',
-			execute: async () => {
-				try {
-					const notebook = await resolveActiveNotebook();
-					if (!notebook) {
-						await joplin.views.dialogs.showMessageBox('请先选择笔记或笔记本。');
-						return;
-					}
+		// await joplin.commands.register({
+		// 	name: 'aiClearTagsForCurrentNotebook',
+		// 	label: 'AI Clear Tags for Current Notebook',
+		// 	iconName: 'fas fa-book',
+		// 	execute: async () => {
+		// 		try {
+		// 			const notebook = await resolveActiveNotebook();
+		// 			if (!notebook) {
+		// 				await joplin.views.dialogs.showMessageBox('请先选择笔记或笔记本。');
+		// 				return;
+		// 			}
 
-					const limit = 50;
-					let processed = 0;
-					let clearedNotes = 0;
-					let removedTags = 0;
+		// 			const limit = 50;
+		// 			let processed = 0;
+		// 			let clearedNotes = 0;
+		// 			let removedTags = 0;
 
-					await forEachNoteInNotebook(
-						notebook.id,
-						['id', 'title'],
-						limit,
-						async (note) => {
-							if (!note || typeof note.id !== 'string') return;
-							processed++;
-							const removed = await removeAllTagsFromNote(note.id);
-							if (removed > 0) {
-								clearedNotes++;
-								removedTags += removed;
-							}
-						}
-					);
+		// 			await forEachNoteInNotebook(
+		// 				notebook.id,
+		// 				['id', 'title'],
+		// 				limit,
+		// 				async (note) => {
+		// 					if (!note || typeof note.id !== 'string') return;
+		// 					processed++;
+		// 					const removed = await removeAllTagsFromNote(note.id);
+		// 					if (removed > 0) {
+		// 						clearedNotes++;
+		// 						removedTags += removed;
+		// 					}
+		// 				}
+		// 			);
 
-					console.info(`AI notebook clear tags summary: notebook=${notebook.title || notebook.id}, processed=${processed}, cleared=${clearedNotes}, tagsRemoved=${removedTags}`);
+		// 			console.info(`AI notebook clear tags summary: notebook=${notebook.title || notebook.id}, processed=${processed}, cleared=${clearedNotes}, tagsRemoved=${removedTags}`);
 
-					if (removedTags > 0) {
-						await refreshTagPoolFromJoplin();
-					} else {
-						await ensureTagPool();
-					}
+		// 			if (removedTags > 0) {
+		// 				await refreshTagPoolFromJoplin();
+		// 			} else {
+		// 				await ensureTagPool();
+		// 			}
 
-					const notebookDisplay = notebook.title ? `笔记本「${notebook.title}」` : '当前笔记本';
+		// 			const notebookDisplay = notebook.title ? `笔记本「${notebook.title}」` : '当前笔记本';
 
-					await joplin.views.dialogs.showToast({
-						message: removedTags
-							? `已从${notebookDisplay}的 ${clearedNotes} 篇笔记移除 ${removedTags} 个标签。`
-							: `${notebookDisplay}中的所有笔记均无可移除的标签。`,
-						type: removedTags ? ToastType.Success : ToastType.Info,
-						duration: 6000,
-					});
-				} catch (error) {
-					console.error('AI Clear Tags (current notebook) error:', error);
-					await joplin.views.dialogs.showMessageBox(`Error: ${error.message}`);
-				}
-			},
-		});
+		// 			await joplin.views.dialogs.showToast({
+		// 				message: removedTags
+		// 					? `已从${notebookDisplay}的 ${clearedNotes} 篇笔记移除 ${removedTags} 个标签。`
+		// 					: `${notebookDisplay}中的所有笔记均无可移除的标签。`,
+		// 				type: removedTags ? ToastType.Success : ToastType.Info,
+		// 				duration: 6000,
+		// 			});
+		// 		} catch (error) {
+		// 			console.error('AI Clear Tags (current notebook) error:', error);
+		// 			await joplin.views.dialogs.showMessageBox(`Error: ${error.message}`);
+		// 		}
+		// 	},
+		// });
 
 		await joplin.commands.register({
 			name: 'aiGenerateTitlesForAllNotes',
@@ -1767,62 +1767,62 @@ joplin.plugins.register({
 			},
 		});
 
-		await joplin.commands.register({
-			name: 'aiClearTagsForAllNotes',
-			label: 'AI Clear Tags for All Notes',
-			iconName: 'fas fa-broom',
-			execute: async () => {
-				try {
-					const limit = 50;
-					let page = 1;
-					let processed = 0;
-					let clearedNotes = 0;
-					let removedTags = 0;
+		// await joplin.commands.register({
+		// 	name: 'aiClearTagsForAllNotes',
+		// 	label: 'AI Clear Tags for All Notes',
+		// 	iconName: 'fas fa-broom',
+		// 	execute: async () => {
+		// 		try {
+		// 			const limit = 50;
+		// 			let page = 1;
+		// 			let processed = 0;
+		// 			let clearedNotes = 0;
+		// 			let removedTags = 0;
 
-					while (true) {
-						const result = await joplin.data.get(['notes'], {
-							fields: ['id', 'title'],
-							limit,
-							page,
-						});
+		// 			while (true) {
+		// 				const result = await joplin.data.get(['notes'], {
+		// 					fields: ['id', 'title'],
+		// 					limit,
+		// 					page,
+		// 				});
 
-						const notes = result.items || [];
-						if (!notes.length) break;
+		// 				const notes = result.items || [];
+		// 				if (!notes.length) break;
 
-						for (const note of notes) {
-							processed++;
-							const removed = await removeAllTagsFromNote(note.id);
-							if (removed > 0) {
-								clearedNotes++;
-								removedTags += removed;
-							}
-						}
+		// 				for (const note of notes) {
+		// 					processed++;
+		// 					const removed = await removeAllTagsFromNote(note.id);
+		// 					if (removed > 0) {
+		// 						clearedNotes++;
+		// 						removedTags += removed;
+		// 					}
+		// 				}
 
-						if (!result.has_more) break;
-						page += 1;
-					}
+		// 				if (!result.has_more) break;
+		// 				page += 1;
+		// 			}
 
-					console.info(`AI clear tags summary: processed ${processed}, cleared ${clearedNotes}, tags removed ${removedTags}`);
+		// 			console.info(`AI clear tags summary: processed ${processed}, cleared ${clearedNotes}, tags removed ${removedTags}`);
 
-					if (removedTags > 0) {
-						await refreshTagPoolFromJoplin();
-					} else {
-						await ensureTagPool();
-					}
+		// 			if (removedTags > 0) {
+		// 				await refreshTagPoolFromJoplin();
+		// 			} else {
+		// 				await ensureTagPool();
+		// 			}
 
-					await joplin.views.dialogs.showToast({
-						message: removedTags
-							? `已从 ${clearedNotes} 篇笔记移除 ${removedTags} 个标签。`
-							: '所有笔记均无可移除的标签。',
-						type: removedTags ? ToastType.Success : ToastType.Info,
-						duration: 6000,
-					});
-				} catch (error) {
-					console.error('AI Clear Tags (all notes) error:', error);
-					await joplin.views.dialogs.showMessageBox(`Error: ${error.message}`);
-				}
-			},
-		});
+		// 			await joplin.views.dialogs.showToast({
+		// 				message: removedTags
+		// 					? `已从 ${clearedNotes} 篇笔记移除 ${removedTags} 个标签。`
+		// 					: '所有笔记均无可移除的标签。',
+		// 				type: removedTags ? ToastType.Success : ToastType.Info,
+		// 				duration: 6000,
+		// 			});
+		// 		} catch (error) {
+		// 			console.error('AI Clear Tags (all notes) error:', error);
+		// 			await joplin.views.dialogs.showMessageBox(`Error: ${error.message}`);
+		// 		}
+		// 	},
+		// });
 
 		await joplin.views.toolbarButtons.create(
 			'aiChatButton',
