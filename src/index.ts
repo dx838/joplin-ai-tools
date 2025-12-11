@@ -144,7 +144,7 @@ async function streamChatCompletion(
 
 		const {
 			stream = true,
-			model = 'deepseek-chat',
+			model = 'glm-4.5-flash',
 			systemMessage,
 		} = options;
 
