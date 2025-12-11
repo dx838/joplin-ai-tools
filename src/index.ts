@@ -1836,11 +1836,11 @@ joplin.plugins.register({
 			ToolbarButtonLocation.NoteToolbar
 		);
 
-		await joplin.views.toolbarButtons.create(
-			'aiClearTagsCurrentButton',
-			'aiClearTagsForCurrentNote',
-			ToolbarButtonLocation.NoteToolbar
-		);
+		// await joplin.views.toolbarButtons.create(
+		// 	'aiClearTagsCurrentButton',
+		// 	'aiClearTagsForCurrentNote',
+		// 	ToolbarButtonLocation.NoteToolbar
+		// );
 
 		await joplin.views.toolbarButtons.create(
 			'aiGenerateTitlesNotebookButton',
@@ -1848,11 +1848,11 @@ joplin.plugins.register({
 			ToolbarButtonLocation.NoteToolbar
 		);
 
-		await joplin.views.toolbarButtons.create(
-			'aiClearTagsNotebookButton',
-			'aiClearTagsForCurrentNotebook',
-			ToolbarButtonLocation.NoteToolbar
-		);
+		// await joplin.views.toolbarButtons.create(
+		// 	'aiClearTagsNotebookButton',
+		// 	'aiClearTagsForCurrentNotebook',
+		// 	ToolbarButtonLocation.NoteToolbar
+		// );
 
 		await joplin.views.toolbarButtons.create(
 			'aiGenerateTitlesButton',
@@ -1860,11 +1860,11 @@ joplin.plugins.register({
 			ToolbarButtonLocation.NoteToolbar
 		);
 
-		await joplin.views.toolbarButtons.create(
-			'aiClearTagsAllButton',
-			'aiClearTagsForAllNotes',
-			ToolbarButtonLocation.NoteToolbar
-		);
+		// await joplin.views.toolbarButtons.create(
+		// 	'aiClearTagsAllButton',
+		// 	'aiClearTagsForAllNotes',
+		// 	ToolbarButtonLocation.NoteToolbar
+		// );
 
 		await joplin.views.menus.create('aiToolsMenu', 'AI Tools', [
 			{
@@ -1876,22 +1876,22 @@ joplin.plugins.register({
 			{
 				commandName: 'aiGenerateTitleForCurrentNote',
 			},
-			{
-				commandName: 'aiClearTagsForCurrentNote',
-			},
+			// {
+			// 	commandName: 'aiClearTagsForCurrentNote',
+			// },
 			{
 				commandName: 'aiGenerateTitlesForCurrentNotebook',
 			},
-			{
-				commandName: 'aiClearTagsForCurrentNotebook',
-			},
+			// {
+			// 	commandName: 'aiClearTagsForCurrentNotebook',
+			// },
 			{
 				commandName: 'aiGenerateTitlesForAllNotes',
 				accelerator: 'CmdOrCtrl+Shift+T',
 			},
-			{
-				commandName: 'aiClearTagsForAllNotes',
-			},
+			// {
+			// 	commandName: 'aiClearTagsForAllNotes',
+			// },
 		], MenuItemLocation.Tools);
 
 		console.info('AI Tools plugin started!');
