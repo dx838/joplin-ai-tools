@@ -903,6 +903,34 @@ async function forEachNoteInNotebook(
 	}
 }
 
+// New helper: robustly obtain selected text across different editors / API versions.
+// Try workspace.selectedText() first (string), fall back to editor.execCommand('selectedText') and normalise.
+async function getSelectedText(): Promise<string> {
+	try {
+		// workspace.selectedText exists in newer Joplin API; use it if available.
+		const ws: any = joplin.workspace as any;
+		if (ws && typeof ws.selectedText === 'function') {
+			const text = await ws.selectedText();
+			if (typeof text === 'string' && text.trim() !== '') return text;
+		}
+	} catch (e) {
+		// ignore and try other methods
+	}
+
+	try {
+		const rawSelection = await joplin.commands.execute('editor.execCommand', {
+			name: 'selectedText',
+		});
+		const normalized = normaliseSelection(rawSelection);
+		if (normalized && normalized.trim() !== '') return normalized;
+	} catch (e) {
+		// ignore
+	}
+
+	// If nothing found, return empty string.
+	return '';
+}
+
 joplin.plugins.register({
 	onStart: async function() {
 		await joplin.settings.registerSection('aiToolsSettings', {
@@ -1068,10 +1096,12 @@ joplin.plugins.register({
 						return;
 					}
 
-					const rawSelection = await joplin.commands.execute('editor.execCommand', {
-						name: 'selectedText',
-					});
-					const selectedText = normaliseSelection(rawSelection);
+					//const rawSelection = await joplin.commands.execute('editor.execCommand', {
+					//	name: 'selectedText',
+					//});
+					//const selectedText = normaliseSelection(rawSelection);
+					// Use new robust getter which uses workspace.selectedText() first and falls back to execCommand
+					const selectedText = await getSelectedText();
 
 					if (!selectedText || selectedText.trim() === '') {
 						await joplin.views.dialogs.showMessageBox('Please select some text first.');
