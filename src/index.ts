@@ -1382,7 +1382,7 @@ joplin.plugins.register({
 				try {
 					const notebook = await resolveActiveNotebook();
 					if (!notebook) {
-						await joplin.views.dialogs.showMessageBox('请先选择一个笔记或笔记本。');
+						await joplin.views.dialogs.showMessageBox('请先选择笔记或笔记本。');
 						return;
 					}
 
