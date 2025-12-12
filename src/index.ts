@@ -1836,11 +1836,11 @@ joplin.plugins.register({
 			ToolbarButtonLocation.NoteToolbar
 		);
 
-		// await joplin.views.toolbarButtons.create(
-		// 	'aiClearTagsCurrentButton',
-		// 	'aiClearTagsForCurrentNote',
-		// 	ToolbarButtonLocation.NoteToolbar
-		// );
+		await joplin.views.toolbarButtons.create(
+			'aiClearTagsCurrentButton',
+			'aiClearTagsForCurrentNote',
+			ToolbarButtonLocation.NoteToolbar
+		);
 
 		await joplin.views.toolbarButtons.create(
 			'aiGenerateTitlesNotebookButton',
