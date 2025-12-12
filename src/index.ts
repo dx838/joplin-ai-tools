@@ -1380,33 +1380,33 @@ joplin.plugins.register({
 			},
 		});
 
-		// await joplin.commands.register({
-		// 	name: 'aiClearTagsForCurrentNote',
-		// 	label: 'AI Clear Tags for Current Note',
-		// 	iconName: 'fas fa-eraser',
-		// 	execute: async () => {
-		// 		try {
-		// 			const note = await joplin.workspace.selectedNote();
-		// 			if (!note) {
-		// 				await joplin.views.dialogs.showMessageBox('Please open a note first.');
-		// 				return;
-		// 			}
+		await joplin.commands.register({
+			name: 'aiClearTagsForCurrentNote',
+			label: 'AI Clear Tags for Current Note',
+			iconName: 'fas fa-eraser',
+			execute: async () => {
+				try {
+					const note = await joplin.workspace.selectedNote();
+					if (!note) {
+						await joplin.views.dialogs.showMessageBox('Please open a note first.');
+						return;
+					}
 
-		// 			const removed = await removeAllTagsFromNote(note.id);
-		// 			if (removed > 0) {
-		// 				await refreshTagPoolFromJoplin();
-		// 			}
-		// 			await joplin.views.dialogs.showToast({
-		// 				message: removed ? `已移除当前笔记的 ${removed} 个标签。` : '当前笔记没有可移除的标签。',
-		// 				type: ToastType.Info,
-		// 				duration: 4000,
-		// 			});
-		// 		} catch (error) {
-		// 			console.error('AI Clear Tags (current note) error:', error);
-		// 			await joplin.views.dialogs.showMessageBox(`Error: ${error.message}`);
-		// 		}
-		// 	},
-		// });
+					const removed = await removeAllTagsFromNote(note.id);
+					if (removed > 0) {
+						await refreshTagPoolFromJoplin();
+					}
+					await joplin.views.dialogs.showToast({
+						message: removed ? `已移除当前笔记的 ${removed} 个标签。` : '当前笔记没有可移除的标签。',
+						type: ToastType.Info,
+						duration: 4000,
+					});
+				} catch (error) {
+					console.error('AI Clear Tags (current note) error:', error);
+					await joplin.views.dialogs.showMessageBox(`Error: ${error.message}`);
+				}
+			},
+		});
 
 		await joplin.commands.register({
 			name: 'aiGenerateTitlesForCurrentNotebook',
@@ -1876,9 +1876,9 @@ joplin.plugins.register({
 			{
 				commandName: 'aiGenerateTitleForCurrentNote',
 			},
-			// {
-			// 	commandName: 'aiClearTagsForCurrentNote',
-			// },
+			{
+				commandName: 'aiClearTagsForCurrentNote',
+			},
 			{
 				commandName: 'aiGenerateTitlesForCurrentNotebook',
 			},
