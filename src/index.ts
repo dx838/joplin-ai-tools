@@ -1615,157 +1615,157 @@ joplin.plugins.register({
 		// 	},
 		// });
 
-		await joplin.commands.register({
-			name: 'aiGenerateTitlesForAllNotes',
-			label: 'AI Generate Titles for All Notes',
-			iconName: 'fas fa-clipboard-list',
-			execute: async () => {
-				try {
-					const baseUrl = await joplin.settings.value('baseUrl');
-					const apiKey = await joplin.settings.value('apiKey');
+		// await joplin.commands.register({
+		// 	name: 'aiGenerateTitlesForAllNotes',
+		// 	label: 'AI Generate Titles for All Notes',
+		// 	iconName: 'fas fa-clipboard-list',
+		// 	execute: async () => {
+		// 		try {
+		// 			const baseUrl = await joplin.settings.value('baseUrl');
+		// 			const apiKey = await joplin.settings.value('apiKey');
 
-					if (!apiKey || apiKey.trim() === '') {
-						await joplin.views.dialogs.showMessageBox('Please configure your API Key in settings first.');
-						return;
-					}
+		// 			if (!apiKey || apiKey.trim() === '') {
+		// 				await joplin.views.dialogs.showMessageBox('Please configure your API Key in settings first.');
+		// 				return;
+		// 			}
 
-					const titleSystemPrompt = String(await joplin.settings.value('titleSystemPrompt') || '');
-					const tagSystemPrompt = String(await joplin.settings.value('tagSystemPrompt') || '');
-					const tagLimitSetting = await joplin.settings.value('tagLimit');
-					const tagLimit = clampTagLimit(tagLimitSetting);
-					const initialTagPool = await ensureTagPool();
-					const workingTagPool = new Set(initialTagPool);
+		// 			const titleSystemPrompt = String(await joplin.settings.value('titleSystemPrompt') || '');
+		// 			const tagSystemPrompt = String(await joplin.settings.value('tagSystemPrompt') || '');
+		// 			const tagLimitSetting = await joplin.settings.value('tagLimit');
+		// 			const tagLimit = clampTagLimit(tagLimitSetting);
+		// 			const initialTagPool = await ensureTagPool();
+		// 			const workingTagPool = new Set(initialTagPool);
 
-					const limit = 20;
-					let page = 1;
-					let processed = 0;
-					let updated = 0;
-					let titlesUpdated = 0;
-					let tagUpdates = 0;
-					let tagsAddedTotal = 0;
-					let tagsRemovedTotal = 0;
-					let tagPoolDirty = false;
-					const errors: string[] = [];
-					const skipIds: string[] = [];
+		// 			const limit = 20;
+		// 			let page = 1;
+		// 			let processed = 0;
+		// 			let updated = 0;
+		// 			let titlesUpdated = 0;
+		// 			let tagUpdates = 0;
+		// 			let tagsAddedTotal = 0;
+		// 			let tagsRemovedTotal = 0;
+		// 			let tagPoolDirty = false;
+		// 			const errors: string[] = [];
+		// 			const skipIds: string[] = [];
 
-					while (true) {
-						const result = await joplin.data.get(['notes'], {
-							fields: ['id', 'title', 'body'],
-							limit,
-							page,
-						});
+		// 			while (true) {
+		// 				const result = await joplin.data.get(['notes'], {
+		// 					fields: ['id', 'title', 'body'],
+		// 					limit,
+		// 					page,
+		// 				});
 
-						const notes = result.items || [];
-						if (!notes.length) break;
+		// 				const notes = result.items || [];
+		// 				if (!notes.length) break;
 
-						for (const note of notes) {
-							processed++;
-							const body = typeof note.body === 'string' ? note.body : '';
-							if (!body.trim()) {
-								skipIds.push(note.id);
-								continue;
-							}
+		// 				for (const note of notes) {
+		// 					processed++;
+		// 					const body = typeof note.body === 'string' ? note.body : '';
+		// 					if (!body.trim()) {
+		// 						skipIds.push(note.id);
+		// 						continue;
+		// 					}
 
-							const truncatedBody = truncateContent(body, 4000);
-							const tagPoolSnapshot = Array.from(workingTagPool);
-							const systemMessage = buildSystemMessage(titleSystemPrompt, tagSystemPrompt, tagLimit, tagPoolSnapshot);
-							const prompt = buildUserPrompt(note.title || '（无标题）', truncatedBody, tagPoolSnapshot);
+		// 					const truncatedBody = truncateContent(body, 4000);
+		// 					const tagPoolSnapshot = Array.from(workingTagPool);
+		// 					const systemMessage = buildSystemMessage(titleSystemPrompt, tagSystemPrompt, tagLimit, tagPoolSnapshot);
+		// 					const prompt = buildUserPrompt(note.title || '（无标题）', truncatedBody, tagPoolSnapshot);
 
-							try {
-								const aiRaw = await streamChatCompletion(
-									baseUrl,
-									apiKey,
-									prompt,
-									undefined,
-									{
-										stream: false,
-										systemMessage,
-									}
-								);
-								const aiMetadata = parseAiTitleAndTags(aiRaw, note.title, tagLimit);
-								const shouldUpdateTitle = !!aiMetadata.title && aiMetadata.title !== note.title;
-								const shouldUpdateTags = aiMetadata.tags.length > 0;
+		// 					try {
+		// 						const aiRaw = await streamChatCompletion(
+		// 							baseUrl,
+		// 							apiKey,
+		// 							prompt,
+		// 							undefined,
+		// 							{
+		// 								stream: false,
+		// 								systemMessage,
+		// 							}
+		// 						);
+		// 						const aiMetadata = parseAiTitleAndTags(aiRaw, note.title, tagLimit);
+		// 						const shouldUpdateTitle = !!aiMetadata.title && aiMetadata.title !== note.title;
+		// 						const shouldUpdateTags = aiMetadata.tags.length > 0;
 
-								if (!shouldUpdateTitle && !shouldUpdateTags) {
-									skipIds.push(note.id);
-									continue;
-								}
+		// 						if (!shouldUpdateTitle && !shouldUpdateTags) {
+		// 							skipIds.push(note.id);
+		// 							continue;
+		// 						}
 
-								let titleUpdated = false;
-								if (shouldUpdateTitle) {
-									await joplin.data.put(['notes', note.id], null, {
-										title: aiMetadata.title,
-									});
-									titleUpdated = true;
-									updated++;
-								}
+		// 						let titleUpdated = false;
+		// 						if (shouldUpdateTitle) {
+		// 							await joplin.data.put(['notes', note.id], null, {
+		// 								title: aiMetadata.title,
+		// 							});
+		// 							titleUpdated = true;
+		// 							updated++;
+		// 						}
 
-								let tagsChanged = false;
-								if (shouldUpdateTags) {
-									const tagStats = await replaceNoteTags(note.id, aiMetadata.tags);
-									if (Array.isArray(tagStats.final) && tagStats.final.length) {
-										for (const tag of tagStats.final) {
-											workingTagPool.add(tag);
-										}
-									}
-									if (tagStats.added || tagStats.removed) {
-										tagsChanged = true;
-										tagPoolDirty = true;
-									}
-									if (tagStats.added) tagsAddedTotal += tagStats.added;
-									if (tagStats.removed) tagsRemovedTotal += tagStats.removed;
-									if (tagStats.added || tagStats.removed) tagUpdates += 1;
-								}
+		// 						let tagsChanged = false;
+		// 						if (shouldUpdateTags) {
+		// 							const tagStats = await replaceNoteTags(note.id, aiMetadata.tags);
+		// 							if (Array.isArray(tagStats.final) && tagStats.final.length) {
+		// 								for (const tag of tagStats.final) {
+		// 									workingTagPool.add(tag);
+		// 								}
+		// 							}
+		// 							if (tagStats.added || tagStats.removed) {
+		// 								tagsChanged = true;
+		// 								tagPoolDirty = true;
+		// 							}
+		// 							if (tagStats.added) tagsAddedTotal += tagStats.added;
+		// 							if (tagStats.removed) tagsRemovedTotal += tagStats.removed;
+		// 							if (tagStats.added || tagStats.removed) tagUpdates += 1;
+		// 						}
 
-								if (!titleUpdated && !tagsChanged) {
-									skipIds.push(note.id);
-								} else {
-									if (!titleUpdated) updated++;
-									if (titleUpdated) titlesUpdated += 1;
-								}
-							} catch (error) {
-								const message = error instanceof Error ? error.message : `${error}`;
-								errors.push(`${note.id}: ${message}`);
-								console.error(`Failed to update title for note ${note.id}:`, error);
-							}
-						}
+		// 						if (!titleUpdated && !tagsChanged) {
+		// 							skipIds.push(note.id);
+		// 						} else {
+		// 							if (!titleUpdated) updated++;
+		// 							if (titleUpdated) titlesUpdated += 1;
+		// 						}
+		// 					} catch (error) {
+		// 						const message = error instanceof Error ? error.message : `${error}`;
+		// 						errors.push(`${note.id}: ${message}`);
+		// 						console.error(`Failed to update title for note ${note.id}:`, error);
+		// 					}
+		// 				}
 
-						if (!result.has_more) break;
-						page += 1;
-					}
+		// 				if (!result.has_more) break;
+		// 				page += 1;
+		// 			}
 
-					if (tagPoolDirty) {
-						await refreshTagPoolFromJoplin();
-					} else {
-						await ensureTagPool();
-					}
+		// 			if (tagPoolDirty) {
+		// 				await refreshTagPoolFromJoplin();
+		// 			} else {
+		// 				await ensureTagPool();
+		// 			}
 
-					const summary = [
-						`Processed: ${processed}`,
-						`Updated Notes: ${updated}`,
-						`Titles Updated: ${titlesUpdated}`,
-						`Tag Adjustments: ${tagUpdates} (+${tagsAddedTotal}/-${tagsRemovedTotal})`,
-						`Skipped: ${skipIds.length}`,
-						errors.length ? `Errors: ${errors.length}` : '',
-					].filter(Boolean).join(', ');
+		// 			const summary = [
+		// 				`Processed: ${processed}`,
+		// 				`Updated Notes: ${updated}`,
+		// 				`Titles Updated: ${titlesUpdated}`,
+		// 				`Tag Adjustments: ${tagUpdates} (+${tagsAddedTotal}/-${tagsRemovedTotal})`,
+		// 				`Skipped: ${skipIds.length}`,
+		// 				errors.length ? `Errors: ${errors.length}` : '',
+		// 			].filter(Boolean).join(', ');
 
-					console.info(`AI title generation summary: ${summary}`);
+		// 			console.info(`AI title generation summary: ${summary}`);
 
-					const toastMessage = errors.length
-						? `AI 批量更新完成：标题 ${titlesUpdated}，标签 ${tagUpdates}，跳过 ${skipIds.length}，错误 ${errors.length}`
-						: `AI 批量更新完成：标题 ${titlesUpdated}，标签 ${tagUpdates}，跳过 ${skipIds.length}`;
+		// 			const toastMessage = errors.length
+		// 				? `AI 批量更新完成：标题 ${titlesUpdated}，标签 ${tagUpdates}，跳过 ${skipIds.length}，错误 ${errors.length}`
+		// 				: `AI 批量更新完成：标题 ${titlesUpdated}，标签 ${tagUpdates}，跳过 ${skipIds.length}`;
 
-					await joplin.views.dialogs.showToast({
-						message: toastMessage,
-						type: errors.length ? ToastType.Info : ToastType.Success,
-						duration: 8000,
-					});
-				} catch (error) {
-					console.error('AI Generate Titles error:', error);
-					await joplin.views.dialogs.showMessageBox(`Error: ${error.message}`);
-				}
-			},
-		});
+		// 			await joplin.views.dialogs.showToast({
+		// 				message: toastMessage,
+		// 				type: errors.length ? ToastType.Info : ToastType.Success,
+		// 				duration: 8000,
+		// 			});
+		// 		} catch (error) {
+		// 			console.error('AI Generate Titles error:', error);
+		// 			await joplin.views.dialogs.showMessageBox(`Error: ${error.message}`);
+		// 		}
+		// 	},
+		// });
 
 		// await joplin.commands.register({
 		// 	name: 'aiClearTagsForAllNotes',
@@ -1885,10 +1885,10 @@ joplin.plugins.register({
 			// {
 			// 	commandName: 'aiClearTagsForCurrentNotebook',
 			// },
-			{
-				commandName: 'aiGenerateTitlesForAllNotes',
-				accelerator: 'CmdOrCtrl+Shift+T',
-			},
+			// {
+			// 	commandName: 'aiGenerateTitlesForAllNotes',
+			// 	accelerator: 'CmdOrCtrl+Shift+T',
+			// },
 			// {
 			// 	commandName: 'aiClearTagsForAllNotes',
 			// },
